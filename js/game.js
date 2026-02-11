@@ -2,7 +2,7 @@ import { Deck, Hand, createDOMCard } from './card.js';
 import { GameRules } from './rules.js';
 import { AIPlayer } from './ai.js';
 import { Renderer } from './renderer.js';
-import { CONFIG, ANIMATION_DURATION, getCardPointValue } from './config.js';
+import { CONFIG, ANIMATION_DURATION, getCardPointValue, CARD_DIMENSIONS, DISCARD_ROW } from './config.js';
 
 export class Game {
     constructor() {
@@ -281,11 +281,7 @@ export class Game {
         }
 
         // Get click coordinates relative to canvas
-        const rect = this.canvas.getBoundingClientRect();
-        const scaleX = this.canvas.width / rect.width;
-        const scaleY = this.canvas.height / rect.height;
-        const x = (e.clientX - rect.left) * scaleX / (window.devicePixelRatio || 1);
-        const y = (e.clientY - rect.top) * scaleY / (window.devicePixelRatio || 1);
+        const { x, y } = this.getCanvasCoordinates(e);
 
         // Check if click is on the discard row
         const clickedIndex = this.getDiscardRowCardIndex(x, y);
@@ -295,29 +291,37 @@ export class Game {
     }
 
     /**
+     * Get coordinates relative to the canvas from a mouse event
+     */
+    getCanvasCoordinates(e) {
+        const rect = this.canvas.getBoundingClientRect();
+        const scaleX = this.canvas.width / rect.width;
+        const scaleY = this.canvas.height / rect.height;
+        const x = (e.clientX - rect.left) * scaleX / (window.devicePixelRatio || 1);
+        const y = (e.clientY - rect.top) * scaleY / (window.devicePixelRatio || 1);
+        return { x, y };
+    }
+
+    /**
      * Get the index of the card clicked in the discard row (or -1 if not on discard row)
      */
     getDiscardRowCardIndex(x, y) {
-        const discardX = this.renderer.width / 2 + 20;
-        const discardY = this.renderer.height / 2 + 20;
-        const cardWidth = 70;  // CARD_DIMENSIONS.WIDTH
-        const cardHeight = 100; // CARD_DIMENSIONS.HEIGHT
-        const spacing = 25;
+        const discardX = this.renderer.width / 2 + DISCARD_ROW.OFFSET_X;
+        const discardY = this.renderer.height / 2 + DISCARD_ROW.OFFSET_Y;
 
         // Check if y is within the card height
-        if (y < discardY || y > discardY + cardHeight) {
+        if (y < discardY || y > discardY + CARD_DIMENSIONS.HEIGHT) {
             return -1;
         }
 
-        // Show only last 5 cards (like the renderer does)
-        const maxVisible = 5;
-        const visibleCards = this.discardRow.slice(-maxVisible);
-        const startIndex = Math.max(0, this.discardRow.length - maxVisible);
+        // Show only last few cards (like the renderer does)
+        const visibleCards = this.discardRow.slice(-DISCARD_ROW.MAX_VISIBLE);
+        const startIndex = Math.max(0, this.discardRow.length - DISCARD_ROW.MAX_VISIBLE);
 
         // Check each visible card from right to left (top card first)
         for (let i = visibleCards.length - 1; i >= 0; i--) {
-            const cardX = discardX + i * spacing;
-            if (x >= cardX && x <= cardX + cardWidth) {
+            const cardX = discardX + i * DISCARD_ROW.CARD_SPACING;
+            if (x >= cardX && x <= cardX + CARD_DIMENSIONS.WIDTH) {
                 // Return the actual index in the full discard row
                 return startIndex + i;
             }
@@ -369,11 +373,7 @@ export class Game {
         }
 
         // Get mouse coordinates relative to canvas
-        const rect = this.canvas.getBoundingClientRect();
-        const scaleX = this.canvas.width / rect.width;
-        const scaleY = this.canvas.height / rect.height;
-        const x = (e.clientX - rect.left) * scaleX / (window.devicePixelRatio || 1);
-        const y = (e.clientY - rect.top) * scaleY / (window.devicePixelRatio || 1);
+        const { x, y } = this.getCanvasCoordinates(e);
 
         // Check if mouse is over the discard row
         const clickedIndex = this.getDiscardRowCardIndex(x, y);

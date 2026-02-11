@@ -1,4 +1,4 @@
-import { ANIMATION_DURATION, CARD_DIMENSIONS } from './config.js';
+import { ANIMATION_DURATION, CARD_DIMENSIONS, DISCARD_ROW } from './config.js';
 
 // Renderer constants
 const MELD_WRAP_MARGIN = 100;
@@ -140,12 +140,10 @@ export class Renderer {
         }
 
         // Draw cards in a row (showing last few cards)
-        const maxVisible = 5;
-        const visibleCards = cards.slice(-maxVisible);
-        const spacing = 25; // Overlap spacing
+        const visibleCards = cards.slice(-DISCARD_ROW.MAX_VISIBLE);
         
         visibleCards.forEach((card, index) => {
-            this.drawCard(x + index * spacing, y, card, true, 1);
+            this.drawCard(x + index * DISCARD_ROW.CARD_SPACING, y, card, true, 1);
         });
     }
 
@@ -242,8 +240,8 @@ export class Renderer {
         });
 
         // Draw discard row
-        const discardX = this.width / 2 + 20;
-        const discardY = this.height / 2 + 20;
+        const discardX = this.width / 2 + DISCARD_ROW.OFFSET_X;
+        const discardY = this.height / 2 + DISCARD_ROW.OFFSET_Y;
         const discardRowCards = gameState.discardRow || gameState.discardPile || [];
         this.drawDiscardPile(discardRowCards, discardX, discardY);
         this.drawText('Discard Row', discardX + 60, discardY + 120, {

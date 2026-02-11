@@ -81,6 +81,14 @@ export const CARD_DIMENSIONS = {
     SPACING: 20
 };
 
+// Discard row display constants
+export const DISCARD_ROW = {
+    MAX_VISIBLE: 5,        // Maximum number of visible cards in discard row
+    CARD_SPACING: 25,      // Overlap spacing between cards in discard row
+    OFFSET_X: 20,          // X offset from center of canvas
+    OFFSET_Y: 20           // Y offset from center of canvas
+};
+
 /**
  * Get card point value for penalty/hand scoring at round end
  * 2-9: 5 points, 10/J/Q/K: 10 points, Ace: 25 points, Joker: 50 points
