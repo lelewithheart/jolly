@@ -64,6 +64,10 @@ export class GameRules {
 
     /**
      * Helper: Check if sequence is valid with a specific Ace value
+     * @param {Array} nonJokers - Array of non-joker cards in the sequence
+     * @param {number} jokerCount - Number of jokers available to fill gaps
+     * @param {number} aceValue - Value to use for Aces (1 for low, 14 for high)
+     * @returns {boolean} - True if the sequence is valid with this Ace value
      */
     static isValidSequenceWithAceValue(nonJokers, jokerCount, aceValue) {
         // Map cards to their values (treating Ace as specified)
@@ -124,10 +128,13 @@ export class GameRules {
         let points = 0;
         const isHighAce = meld.type === 'sequence' && this.isHighAceSequence(meld.cards);
         
-        // Check for three Aces set
+        // Check for three Aces set (special case: exactly 3 Aces = 25 points)
         const nonJokers = meld.cards.filter(c => !c.isJoker);
-        if (meld.type === 'set' && nonJokers.every(c => c.rank === 'A') && nonJokers.length === 3) {
-            return 25; // Three Aces = 25 points
+        const isThreeAcesSet = meld.type === 'set' && 
+            nonJokers.every(c => c.rank === 'A') && 
+            nonJokers.length === CONFIG.MIN_SET_SIZE;
+        if (isThreeAcesSet) {
+            return CONFIG.THREE_ACES_POINTS;
         }
         
         for (const card of meld.cards) {

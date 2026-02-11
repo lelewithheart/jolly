@@ -6,36 +6,81 @@
 
 - **HTML5 Canvas Graphics** - High-quality card rendering with smooth animations
 - **AI Opponent** - Play against an intelligent AI with 3 difficulty levels (Easy, Medium, Hard)
-- **Complete Rummy Rules** - Form sets and sequences following classic Jolly/Rummy gameplay
+- **Complete Jolly Rules** - Form sets and sequences following the official Jolly ruleset
 - **Drag-and-Drop Interface** - Intuitive card play with both drag-and-drop and click support
 - **Responsive Design** - Works seamlessly on desktop, tablet, and mobile devices
-- **Multi-Round Scoring** - Track scores across multiple rounds with penalty point system
+- **Multi-Round Scoring** - Track scores across multiple rounds with point-based system
 - **Modern JavaScript** - Built with ES6 modules for clean, maintainable code
 
-## How to Play
+## Game Rules
+
+### Cards & Players
+- **60-card deck**: 52 standard cards + 8 Jokers (Jollys)
+- 1-8 players supported
+- Starting player receives **13 cards** and begins the game
+- All other players receive **12 cards**
 
 ### Game Objective
-Form valid sets and sequences with your cards. Be the first to create at least 2 sequences (including 1 pure sequence) and declare to win the round.
+Lay down all your cards in valid melds (sets and sequences) and end the round by "zudrehen" (turning down) with an unusable last card.
 
 ### Card Combinations
 
-**Set:** 3-4 cards of the same rank but different suits
+**Set:** 3+ cards of the same rank (suits don't matter)
 - Example: 7♠ 7♥ 7♦
 
 **Sequence:** 3+ consecutive cards of the same suit
 - Example: 5♠ 6♠ 7♠ 8♠
+- Ace can be low (A-2-3) or high (Q-K-A)
 
 **Jolly (Joker):** Wild cards that can substitute for any card in sets or sequences
 
-### Winning
-- Form at least **2 sequences** (one must be pure - no jokers)
-- All remaining cards must be in valid sets or sequences
-- Click "Declare" when ready
+### First Meld Requirement
+Your first meld must be worth at least **30 points**:
 
-### Scoring
-- Successfully declare with valid melds: Opponent gets 80 penalty points
-- Invalid declaration: You get double the points of unmatched cards
-- First player to reach 500 points loses the game
+| Card | Value |
+|------|------|
+| 2-9 | 5 points |
+| 10/J/Q/K | 10 points |
+| Ace as 1 (low) | 5 points |
+| Ace after King (high) | 10 points |
+| Three Aces (A-A-A) | 25 points |
+| Joker | Value of the card it replaces |
+
+### Discard Row
+- Instead of a discard pile, there's an open **discard row**
+- You can only draw from the row **after laying your first meld**
+- You may take multiple cards from the row (up to a card you can use in that turn)
+
+### Turn Structure
+1. **Draw**: Either from the deck OR from the discard row (after first meld)
+2. **Lay Melds** (optional): Place valid sets/sequences on the table
+3. **Extend Melds** (optional): Add cards to existing melds (yours or opponent's)
+4. **End Turn**: Either discard a card OR end the round
+
+### Ending the Round (Zudrehen)
+A round ends when a player:
+- Has exactly **one card left** that cannot be used anywhere
+- The card is not a Joker (Jokers can always be used)
+
+**Bonus**: The player who ends the round receives **+30 points**
+
+### Scoring at Round End
+
+Remaining cards in hand count as penalty points:
+
+| Card | Value |
+|------|------|
+| 2-9 | 5 points |
+| 10/J/Q/K | 10 points |
+| Ace | 25 points |
+| Joker | 50 points |
+
+The player who ends the round receives:
+- All opponent's penalty points
+- +30 bonus for ending the round
+
+### Game End
+First player to reach the **target score** (500 or 1000 points, selectable) wins the game!
 
 ## Getting Started
 
@@ -72,9 +117,10 @@ Simply open `index.html` in any modern web browser. The game runs entirely clien
 
 - **New Game** - Start a fresh game
 - **Draw from Deck** - Draw a card from the deck
-- **Draw from Discard** - Take the top card from the discard pile
+- **Draw from Row** - Take cards from the discard row (available after first meld)
+- **Lay Meld** - Place selected cards as a meld on the table
 - **Sort Hand** - Organize your cards by suit and rank
-- **Declare** - Announce your win (only enabled after drawing and forming valid melds)
+- **End Round** - End the round with your last unusable card
 
 ## Technical Details
 

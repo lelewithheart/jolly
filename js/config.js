@@ -40,7 +40,8 @@ export const CONFIG = {
     FIRST_MELD_MIN_POINTS: 30,   // Minimum 30 points for first meld
     ZUDREHEN_BONUS: 30,          // Bonus for ending round
     WIN_THRESHOLD_LOW: 500,      // Low target score option
-    WIN_THRESHOLD_HIGH: 1000     // High target score option
+    WIN_THRESHOLD_HIGH: 1000,    // High target score option
+    THREE_ACES_POINTS: 25        // Special value for three Aces set
 };
 
 export const AI_DIFFICULTY = {
@@ -88,8 +89,7 @@ export function getCardPointValue(card) {
     if (card.isJoker) return 50;
     if (['10', 'J', 'Q', 'K'].includes(card.rank)) return 10;
     if (card.rank === 'A') return 25;
-    const value = parseInt(card.rank);
-    if (value >= 2 && value <= 9) return 5;
+    // All other cards (2-9) are worth 5 points
     return 5;
 }
 
@@ -104,7 +104,6 @@ export function getMeldPointValue(card, isHighAce = false) {
     if (card.isJoker) return 0; // Joker value handled separately based on replaced card
     if (['10', 'J', 'Q', 'K'].includes(card.rank)) return 10;
     if (card.rank === 'A') return isHighAce ? 10 : 5;
-    const value = parseInt(card.rank);
-    if (value >= 2 && value <= 9) return 5;
+    // All other cards (2-9) are worth 5 points
     return 5;
 }

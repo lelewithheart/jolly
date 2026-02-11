@@ -1,5 +1,11 @@
 import { ANIMATION_DURATION, CARD_DIMENSIONS } from './config.js';
 
+// Renderer constants
+const MELD_WRAP_MARGIN = 100;
+const MELD_ROW_HEIGHT = 80;
+const MELD_CARD_SPACING = 18;
+const MELD_GAP = 30;
+
 export class Renderer {
     constructor(canvas) {
         this.canvas = canvas;
@@ -146,20 +152,18 @@ export class Renderer {
     drawTableMelds(melds, x, y) {
         if (!melds || melds.length === 0) return;
 
-        const meldSpacing = 120;
         let currentX = x;
         
         for (const meld of melds) {
-            const cardSpacing = 18;
             meld.cards.forEach((card, index) => {
-                this.drawCard(currentX + index * cardSpacing, y, card, true, 0.7);
+                this.drawCard(currentX + index * MELD_CARD_SPACING, y, card, true, 0.7);
             });
-            currentX += meld.cards.length * cardSpacing + 30;
+            currentX += meld.cards.length * MELD_CARD_SPACING + MELD_GAP;
             
             // Wrap to next row if needed
-            if (currentX > this.width - 100) {
+            if (currentX > this.width - MELD_WRAP_MARGIN) {
                 currentX = x;
-                y += 80;
+                y += MELD_ROW_HEIGHT;
             }
         }
     }

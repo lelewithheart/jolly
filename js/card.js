@@ -71,6 +71,14 @@ export class Deck {
         }
     }
 
+    /**
+     * Add cards back to the deck (used for reshuffling discard row)
+     * @param {Array} cards - Array of cards to add back to the deck
+     */
+    addCards(cards) {
+        this.cards.push(...cards);
+    }
+
     draw() {
         return this.cards.pop();
     }

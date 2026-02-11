@@ -173,9 +173,11 @@ export class Game {
             // Reshuffle discard row except top card
             if (this.discardRow.length > 1) {
                 const topCard = this.discardRow.pop();
+                const cardsToReshuffle = [];
                 while (this.discardRow.length > 0) {
-                    this.deck.cards.push(this.discardRow.pop());
+                    cardsToReshuffle.push(this.discardRow.pop());
                 }
+                this.deck.addCards(cardsToReshuffle);
                 this.deck.shuffle();
                 this.discardRow.push(topCard);
             } else {
