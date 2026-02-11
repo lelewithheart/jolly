@@ -108,6 +108,12 @@ export class Game {
         this.playerHandEl.addEventListener('dragstart', (e) => this.handleDragStart(e));
         this.playerHandEl.addEventListener('dragend', (e) => this.handleDragEnd(e));
         this.playerHandEl.addEventListener('click', (e) => this.handleCardClick(e));
+
+        // Canvas click for discard row selection
+        this.canvas.addEventListener('click', (e) => this.handleCanvasClick(e));
+        
+        // Canvas mousemove to show pointer cursor on clickable discard row cards
+        this.canvas.addEventListener('mousemove', (e) => this.handleCanvasMouseMove(e));
     }
 
     startNewGame() {
@@ -214,18 +220,9 @@ export class Game {
             return;
         }
 
-        // For now, take only the top card. 
-        // Full implementation would allow taking multiple cards down to a usable one
-        const card = this.discardRow.pop();
-        this.playerHand.addCard(card);
-        this.hasDrawn = true;
-        this.isFirstTurn = false;
-
-        this.renderPlayerHand();
-        this.updateCounts();
-        this.updateButtons();
-        this.updateStatus('You drew from discard row. Lay melds or select a card to discard.');
-        this.render();
+        // Take only the top card (clicking the button takes just the top card)
+        // For selecting deeper cards, player can click directly on the discard row
+        this.drawFromDiscardRowAtIndex(this.discardRow.length - 1);
     }
 
     handleCardClick(e) {
@@ -243,8 +240,16 @@ export class Game {
             return;
         }
 
-        // If has drawn, clicking a card discards it (ends turn)
-        this.discardCard(card);
+        // After drawing: if clicking an already-selected card, discard it
+        // Otherwise, toggle the selection (allowing player to select cards for melds)
+        const isSelected = cardEl.classList.contains('selected');
+        if (isSelected) {
+            // Clicking a selected card after drawing = discard it
+            this.discardCard(card);
+        } else {
+            // Clicking an unselected card after drawing = select it
+            this.toggleCardSelection(cardEl, card);
+        }
     }
 
     toggleCardSelection(cardEl, card) {
@@ -256,6 +261,127 @@ export class Game {
             this.selectedCards.push(card);
         }
         this.updateButtons();
+    }
+
+    /**
+     * Handle clicks on the canvas (for discard row selection)
+     */
+    handleCanvasClick(e) {
+        if (this.gameState !== 'playerTurn' || this.hasDrawn) {
+            return;
+        }
+
+        // Can only draw from discard row after having melded once
+        if (!this.playerHasMelded) {
+            return;
+        }
+
+        if (this.discardRow.length === 0) {
+            return;
+        }
+
+        // Get click coordinates relative to canvas
+        const rect = this.canvas.getBoundingClientRect();
+        const scaleX = this.canvas.width / rect.width;
+        const scaleY = this.canvas.height / rect.height;
+        const x = (e.clientX - rect.left) * scaleX / (window.devicePixelRatio || 1);
+        const y = (e.clientY - rect.top) * scaleY / (window.devicePixelRatio || 1);
+
+        // Check if click is on the discard row
+        const clickedIndex = this.getDiscardRowCardIndex(x, y);
+        if (clickedIndex !== -1) {
+            this.drawFromDiscardRowAtIndex(clickedIndex);
+        }
+    }
+
+    /**
+     * Get the index of the card clicked in the discard row (or -1 if not on discard row)
+     */
+    getDiscardRowCardIndex(x, y) {
+        const discardX = this.renderer.width / 2 + 20;
+        const discardY = this.renderer.height / 2 + 20;
+        const cardWidth = 70;  // CARD_DIMENSIONS.WIDTH
+        const cardHeight = 100; // CARD_DIMENSIONS.HEIGHT
+        const spacing = 25;
+
+        // Check if y is within the card height
+        if (y < discardY || y > discardY + cardHeight) {
+            return -1;
+        }
+
+        // Show only last 5 cards (like the renderer does)
+        const maxVisible = 5;
+        const visibleCards = this.discardRow.slice(-maxVisible);
+        const startIndex = Math.max(0, this.discardRow.length - maxVisible);
+
+        // Check each visible card from right to left (top card first)
+        for (let i = visibleCards.length - 1; i >= 0; i--) {
+            const cardX = discardX + i * spacing;
+            if (x >= cardX && x <= cardX + cardWidth) {
+                // Return the actual index in the full discard row
+                return startIndex + i;
+            }
+        }
+
+        return -1;
+    }
+
+    /**
+     * Draw from discard row starting at a specific index
+     * Takes the clicked card and all cards after it
+     */
+    drawFromDiscardRowAtIndex(index) {
+        if (index < 0 || index >= this.discardRow.length) {
+            return;
+        }
+
+        // Take all cards from this index to the end
+        const takenCards = this.discardRow.splice(index);
+        
+        // Add all taken cards to player's hand
+        for (const card of takenCards) {
+            this.playerHand.addCard(card);
+        }
+        
+        this.hasDrawn = true;
+        this.isFirstTurn = false;
+
+        this.renderPlayerHand();
+        this.updateCounts();
+        this.updateButtons();
+        
+        if (takenCards.length === 1) {
+            this.updateStatus('You drew 1 card from discard row. Lay melds or select a card to discard.');
+        } else {
+            this.updateStatus(`You drew ${takenCards.length} cards from discard row. Lay melds or select a card to discard.`);
+        }
+        this.render();
+    }
+
+    /**
+     * Handle mouse movement over canvas to show pointer cursor on clickable cards
+     */
+    handleCanvasMouseMove(e) {
+        // Only show pointer if player can draw from discard row
+        if (this.gameState !== 'playerTurn' || this.hasDrawn || !this.playerHasMelded || this.discardRow.length === 0) {
+            this.canvas.style.cursor = 'default';
+            return;
+        }
+
+        // Get mouse coordinates relative to canvas
+        const rect = this.canvas.getBoundingClientRect();
+        const scaleX = this.canvas.width / rect.width;
+        const scaleY = this.canvas.height / rect.height;
+        const x = (e.clientX - rect.left) * scaleX / (window.devicePixelRatio || 1);
+        const y = (e.clientY - rect.top) * scaleY / (window.devicePixelRatio || 1);
+
+        // Check if mouse is over the discard row
+        const clickedIndex = this.getDiscardRowCardIndex(x, y);
+        if (clickedIndex !== -1) {
+            this.canvas.style.cursor = 'pointer';
+        } else {
+            this.canvas.style.cursor = 'default';
+        }
     }
 
     /**
