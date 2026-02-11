@@ -2,7 +2,7 @@ import { Deck, Hand, createDOMCard } from './card.js';
 import { GameRules } from './rules.js';
 import { AIPlayer } from './ai.js';
 import { Renderer } from './renderer.js';
-import { CONFIG } from './config.js';
+import { CONFIG, ANIMATION_DURATION } from './config.js';
 
 export class Game {
     constructor() {
@@ -212,7 +212,7 @@ export class Game {
         this.gameState = 'aiTurn';
         this.updateStatus("AI's turn...");
         
-        setTimeout(() => this.aiTurn(), 1000);
+        setTimeout(() => this.aiTurn(), ANIMATION_DURATION.AI_THINKING);
     }
 
     async aiTurn() {

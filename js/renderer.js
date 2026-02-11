@@ -1,4 +1,4 @@
-import { ANIMATION_DURATION } from './config.js';
+import { ANIMATION_DURATION, CARD_DIMENSIONS } from './config.js';
 
 export class Renderer {
     constructor(canvas) {
@@ -26,9 +26,9 @@ export class Renderer {
     }
 
     drawCard(x, y, card, faceUp = true, scale = 1) {
-        const width = 70 * scale;
-        const height = 100 * scale;
-        const radius = 8 * scale;
+        const width = CARD_DIMENSIONS.WIDTH * scale;
+        const height = CARD_DIMENSIONS.HEIGHT * scale;
+        const radius = CARD_DIMENSIONS.RADIUS * scale;
 
         this.ctx.save();
 
@@ -108,8 +108,8 @@ export class Renderer {
     drawHand(cards, y, faceUp = false, spread = true) {
         if (cards.length === 0) return;
 
-        const cardWidth = 70;
-        const spacing = spread ? 20 : -50;
+        const cardWidth = CARD_DIMENSIONS.WIDTH;
+        const spacing = spread ? CARD_DIMENSIONS.SPACING : -50;
         const totalWidth = cardWidth + (cards.length - 1) * spacing;
         const startX = (this.width - totalWidth) / 2;
 
@@ -126,7 +126,7 @@ export class Renderer {
             this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
             this.ctx.lineWidth = 2;
             this.ctx.setLineDash([5, 5]);
-            this.roundRect(x, y, 70, 100, 8);
+            this.roundRect(x, y, CARD_DIMENSIONS.WIDTH, CARD_DIMENSIONS.HEIGHT, CARD_DIMENSIONS.RADIUS);
             this.ctx.stroke();
             this.ctx.restore();
             return;
@@ -146,7 +146,7 @@ export class Renderer {
             this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
             this.ctx.lineWidth = 2;
             this.ctx.setLineDash([5, 5]);
-            this.roundRect(x, y, 70, 100, 8);
+            this.roundRect(x, y, CARD_DIMENSIONS.WIDTH, CARD_DIMENSIONS.HEIGHT, CARD_DIMENSIONS.RADIUS);
             this.ctx.stroke();
             this.ctx.restore();
             return;
@@ -165,7 +165,7 @@ export class Renderer {
         this.ctx.textAlign = 'center';
         this.ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
         this.ctx.shadowBlur = 4;
-        this.ctx.fillText(cardCount.toString(), x + 35, y + 55);
+        this.ctx.fillText(cardCount.toString(), x + CARD_DIMENSIONS.WIDTH / 2, y + CARD_DIMENSIONS.HEIGHT / 2 + 5);
         this.ctx.restore();
     }
 

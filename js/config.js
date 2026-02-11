@@ -69,3 +69,19 @@ export const ANIMATION_DURATION = {
     CARD_FLIP: 200,
     AI_THINKING: 1000
 };
+
+export const SUIT_ORDER = [SUITS.SPADES, SUITS.HEARTS, SUITS.DIAMONDS, SUITS.CLUBS];
+
+export const CARD_DIMENSIONS = {
+    WIDTH: 70,
+    HEIGHT: 100,
+    RADIUS: 8,
+    SPACING: 20
+};
+
+export function getCardPointValue(card) {
+    if (card.isJoker) return 50;
+    if (['J', 'Q', 'K'].includes(card.rank)) return 10;
+    if (card.rank === 'A') return 10;
+    return parseInt(card.rank);
+}

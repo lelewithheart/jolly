@@ -1,4 +1,4 @@
-import { CONFIG } from './config.js';
+import { CONFIG, getCardPointValue } from './config.js';
 
 export class GameRules {
     /**
@@ -153,12 +153,7 @@ export class GameRules {
 
         const unmatchedCards = cards.filter(c => !meldCardIds.has(c.id));
         
-        return unmatchedCards.reduce((sum, card) => {
-            if (card.isJoker) return sum + 50;
-            if (['J', 'Q', 'K'].includes(card.rank)) return sum + 10;
-            if (card.rank === 'A') return sum + 10;
-            return sum + parseInt(card.rank);
-        }, 0);
+        return unmatchedCards.reduce((sum, card) => sum + getCardPointValue(card), 0);
     }
 
     /**
@@ -201,13 +196,9 @@ export class GameRules {
             // Discard highest value unmatched card (but not jokers if possible)
             const nonJokers = unmatchedCards.filter(c => !c.isJoker);
             if (nonJokers.length > 0) {
-                return nonJokers.reduce((highest, card) => {
-                    const highestValue = ['J', 'Q', 'K'].includes(highest.rank) ? 10 : 
-                                        highest.rank === 'A' ? 10 : parseInt(highest.rank);
-                    const cardValue = ['J', 'Q', 'K'].includes(card.rank) ? 10 : 
-                                     card.rank === 'A' ? 10 : parseInt(card.rank);
-                    return cardValue > highestValue ? card : highest;
-                });
+                return nonJokers.reduce((highest, card) => 
+                    getCardPointValue(card) > getCardPointValue(highest) ? card : highest
+                );
             }
             return unmatchedCards[0];
         }

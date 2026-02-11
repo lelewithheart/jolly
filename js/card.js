@@ -1,11 +1,13 @@
-import { SUITS, RANKS, COLORS, CONFIG } from './config.js';
+import { SUITS, RANKS, COLORS, CONFIG, getCardPointValue, SUIT_ORDER } from './config.js';
+
+let cardIdCounter = 0;
 
 export class Card {
     constructor(suit, rank, isJoker = false) {
         this.suit = suit;
         this.rank = rank;
         this.isJoker = isJoker;
-        this.id = isJoker ? `JOKER-${Math.random()}` : `${suit}-${rank}`;
+        this.id = isJoker ? `JOKER-${cardIdCounter++}` : `${suit}-${rank}`;
     }
 
     get color() {
@@ -107,8 +109,7 @@ export class Hand {
             if (a.isJoker && b.isJoker) return 0;
 
             // Sort by suit first
-            const suitOrder = [SUITS.SPADES, SUITS.HEARTS, SUITS.DIAMONDS, SUITS.CLUBS];
-            const suitComparison = suitOrder.indexOf(a.suit) - suitOrder.indexOf(b.suit);
+            const suitComparison = SUIT_ORDER.indexOf(a.suit) - SUIT_ORDER.indexOf(b.suit);
             
             if (suitComparison !== 0) {
                 return suitComparison;

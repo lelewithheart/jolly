@@ -1,4 +1,4 @@
-import { AI_DIFFICULTY } from './config.js';
+import { AI_DIFFICULTY, SUITS, SUIT_ORDER } from './config.js';
 import { GameRules } from './rules.js';
 
 export class AIPlayer {
@@ -104,7 +104,7 @@ export class AIPlayer {
             }
 
             // Cards that could form sets
-            const otherSuits = ['♠', '♥', '♦', '♣'].filter(s => s !== card.suit);
+            const otherSuits = Object.values(SUITS).filter(s => s !== card.suit);
             otherSuits.forEach(suit => {
                 needed.push({ suit, value: card.value, rank: card.rank });
             });
@@ -171,8 +171,7 @@ export class AIPlayer {
             if (!a.isJoker && b.isJoker) return -1;
             if (a.isJoker && b.isJoker) return 0;
 
-            const suitOrder = ['♠', '♥', '♦', '♣'];
-            const suitComparison = suitOrder.indexOf(a.suit) - suitOrder.indexOf(b.suit);
+            const suitComparison = SUIT_ORDER.indexOf(a.suit) - SUIT_ORDER.indexOf(b.suit);
             
             if (suitComparison !== 0) {
                 return suitComparison;
