@@ -1,12 +1,13 @@
-import { CONFIG, getCardPointValue } from './config.js';
+import { CONFIG, getCardPointValue, getMeldPointValue } from './config.js';
 
 export class GameRules {
     /**
      * Validates if a group of cards forms a valid set
-     * A set consists of 3-4 cards of the same rank
+     * A set consists of 3+ cards of the same rank (suits don't matter in Jolly)
+     * Jokers can substitute any card
      */
-    static isValidSet(cards, jollyCard = null) {
-        if (cards.length < CONFIG.MIN_SET_SIZE || cards.length > 4) {
+    static isValidSet(cards) {
+        if (cards.length < CONFIG.MIN_SET_SIZE) {
             return false;
         }
 
@@ -20,22 +21,16 @@ export class GameRules {
         const rank = nonJokerCards[0].rank;
         const allSameRank = nonJokerCards.every(c => c.rank === rank);
 
-        if (!allSameRank) {
-            return false;
-        }
-
-        // Check that no two cards have the same suit
-        const suits = nonJokerCards.map(c => c.suit);
-        const uniqueSuits = new Set(suits);
-        
-        return suits.length === uniqueSuits.size;
+        return allSameRank;
     }
 
     /**
      * Validates if a group of cards forms a valid sequence
      * A sequence consists of 3+ consecutive cards of the same suit
+     * Ace can be low (A-2-3) or high (Q-K-A)
+     * Jokers can substitute any card
      */
-    static isValidSequence(cards, jollyCard = null) {
+    static isValidSequence(cards) {
         if (cards.length < CONFIG.MIN_SEQUENCE_SIZE) {
             return false;
         }
@@ -54,35 +49,123 @@ export class GameRules {
             return false;
         }
 
-        // Sort non-joker cards by value
-        const sortedCards = [...nonJokers].sort((a, b) => a.value - b.value);
-        
-        // Check if jokers can fill gaps
-        let jokerCount = jokers.length;
-        for (let i = 0; i < sortedCards.length - 1; i++) {
-            const gap = sortedCards[i + 1].value - sortedCards[i].value - 1;
-            
-            if (gap > 0) {
-                if (gap > jokerCount) {
-                    return false; // Gap too large for available jokers
-                }
-                jokerCount -= gap;
-            } else if (gap < 0) {
-                return false; // Duplicate values
-            }
+        // Try sequence with Ace as low (1)
+        if (this.isValidSequenceWithAceValue(nonJokers, jokers.length, 1)) {
+            return true;
         }
 
-        return true;
+        // Try sequence with Ace as high (14)
+        if (this.isValidSequenceWithAceValue(nonJokers, jokers.length, 14)) {
+            return true;
+        }
+
+        return false;
     }
 
     /**
-     * Checks if a sequence is pure (no jokers or wild cards)
+     * Helper: Check if sequence is valid with a specific Ace value
+     */
+    static isValidSequenceWithAceValue(nonJokers, jokerCount, aceValue) {
+        // Map cards to their values (treating Ace as specified)
+        const values = nonJokers.map(c => {
+            if (c.rank === 'A') return aceValue;
+            return c.value;
+        });
+
+        // Sort values
+        const sortedValues = [...values].sort((a, b) => a - b);
+
+        // Check for duplicates
+        for (let i = 0; i < sortedValues.length - 1; i++) {
+            if (sortedValues[i] === sortedValues[i + 1]) {
+                return false;
+            }
+        }
+
+        // Check if jokers can fill gaps
+        let jokersNeeded = 0;
+        for (let i = 0; i < sortedValues.length - 1; i++) {
+            const gap = sortedValues[i + 1] - sortedValues[i] - 1;
+            if (gap > 0) {
+                jokersNeeded += gap;
+            }
+        }
+
+        return jokersNeeded <= jokerCount;
+    }
+
+    /**
+     * Checks if a sequence uses Ace as high (after King)
+     */
+    static isHighAceSequence(cards) {
+        const nonJokers = cards.filter(c => !c.isJoker);
+        const hasAce = nonJokers.some(c => c.rank === 'A');
+        const hasKing = nonJokers.some(c => c.rank === 'K');
+        const hasTwo = nonJokers.some(c => c.rank === '2');
+        
+        // If has Ace and King but no 2, it's likely a high ace sequence
+        return hasAce && hasKing && !hasTwo;
+    }
+
+    /**
+     * Checks if a sequence is pure (no jokers)
      */
     static isPureSequence(cards) {
         if (cards.some(c => c.isJoker)) {
             return false;
         }
         return this.isValidSequence(cards);
+    }
+
+    /**
+     * Calculates the meld value for first meld requirement (min 30 points)
+     */
+    static calculateMeldPoints(meld) {
+        let points = 0;
+        const isHighAce = meld.type === 'sequence' && this.isHighAceSequence(meld.cards);
+        
+        // Check for three Aces set
+        const nonJokers = meld.cards.filter(c => !c.isJoker);
+        if (meld.type === 'set' && nonJokers.every(c => c.rank === 'A') && nonJokers.length === 3) {
+            return 25; // Three Aces = 25 points
+        }
+        
+        for (const card of meld.cards) {
+            if (card.isJoker) {
+                // Joker takes value of the card it replaces (estimate based on meld)
+                points += this.estimateJokerValue(meld);
+            } else {
+                points += getMeldPointValue(card, isHighAce);
+            }
+        }
+        
+        return points;
+    }
+
+    /**
+     * Estimates the value of a joker in a meld (average of other cards)
+     */
+    static estimateJokerValue(meld) {
+        const nonJokers = meld.cards.filter(c => !c.isJoker);
+        if (nonJokers.length === 0) return 5;
+        
+        const isHighAce = meld.type === 'sequence' && this.isHighAceSequence(meld.cards);
+        const total = nonJokers.reduce((sum, c) => sum + getMeldPointValue(c, isHighAce), 0);
+        return Math.round(total / nonJokers.length);
+    }
+
+    /**
+     * Calculates total points for a group of melds (for first meld requirement)
+     */
+    static calculateTotalMeldPoints(melds) {
+        return melds.reduce((sum, meld) => sum + this.calculateMeldPoints(meld), 0);
+    }
+
+    /**
+     * Checks if melds meet the first meld requirement (min 30 points)
+     */
+    static meetsFirstMeldRequirement(melds) {
+        return this.calculateTotalMeldPoints(melds) >= CONFIG.FIRST_MELD_MIN_POINTS;
     }
 
     /**
@@ -104,7 +187,7 @@ export class GameRules {
         }
 
         // Then find sets
-        for (let size = 4; size >= CONFIG.MIN_SET_SIZE; size--) {
+        for (let size = cards.length; size >= CONFIG.MIN_SET_SIZE; size--) {
             const combinations = this.getCombinations(cards, size);
             for (const combo of combinations) {
                 if (this.isValidSet(combo) && !this.hasOverlap(combo, used)) {
@@ -118,33 +201,54 @@ export class GameRules {
     }
 
     /**
-     * Validates if a hand can declare (win)
+     * Checks if a card can be added to an existing meld
      */
-    static canDeclare(cards) {
-        const melds = this.findMelds(cards);
-        
-        // Count sequences and pure sequences
-        const sequences = melds.filter(m => m.type === 'sequence');
-        const pureSequences = sequences.filter(m => m.pure);
-
-        // Need at least 2 sequences with at least 1 pure sequence
-        if (sequences.length < CONFIG.MIN_SEQUENCES_REQUIRED || 
-            pureSequences.length < CONFIG.MIN_PURE_SEQUENCES) {
-            return false;
+    static canExtendMeld(meld, card) {
+        const extendedCards = [...meld.cards, card];
+        if (meld.type === 'set') {
+            return this.isValidSet(extendedCards);
+        } else {
+            return this.isValidSequence(extendedCards);
         }
-
-        // Check if all or almost all cards are in melds
-        const cardIds = new Set(cards.map(c => c.id));
-        const meldCardIds = new Set();
-        melds.forEach(m => m.cards.forEach(c => meldCardIds.add(c.id)));
-
-        // Allow at most 1 unmatched card
-        const unmatchedCount = cardIds.size - meldCardIds.size;
-        return unmatchedCount <= 1;
     }
 
     /**
-     * Calculates the penalty points for unmatched cards
+     * Checks if player can end the round (zudrehen)
+     * Player must have exactly one card left that cannot be used anywhere
+     */
+    static canZudrehen(playerHand, tableMelds) {
+        if (playerHand.length !== 1) {
+            return false;
+        }
+        
+        const lastCard = playerHand[0];
+        
+        // Check if the card can extend any meld on the table
+        for (const meld of tableMelds) {
+            if (this.canExtendMeld(meld, lastCard)) {
+                return false; // Card is usable
+            }
+        }
+        
+        // Check if card is a joker (jokers are always usable to replace in melds)
+        // For zudrehen, we check if the card truly cannot be used
+        if (lastCard.isJoker) {
+            // Joker can always replace a card in a meld, so it's usable
+            return false;
+        }
+        
+        return true;
+    }
+
+    /**
+     * Calculates the penalty points for remaining cards in hand at round end
+     */
+    static calculateHandPoints(cards) {
+        return cards.reduce((sum, card) => sum + getCardPointValue(card), 0);
+    }
+
+    /**
+     * Legacy: Calculates the penalty points for unmatched cards
      */
     static calculatePoints(cards) {
         const melds = this.findMelds(cards);

@@ -32,14 +32,15 @@ export const COLORS = {
 };
 
 export const CONFIG = {
-    HAND_SIZE: 13,
-    MIN_SEQUENCES_REQUIRED: 2,
-    MIN_PURE_SEQUENCES: 1,
+    STARTING_HAND_SIZE: 13,      // Starting player gets 13 cards
+    OTHER_HAND_SIZE: 12,         // Other players get 12 cards
     MIN_SET_SIZE: 3,
     MIN_SEQUENCE_SIZE: 3,
-    JOKER_COUNT: 2,
-    POINTS_PER_UNMATCHED_CARD: 10,
-    WIN_THRESHOLD: 500
+    JOKER_COUNT: 8,              // 8 Jokers (Jollys)
+    FIRST_MELD_MIN_POINTS: 30,   // Minimum 30 points for first meld
+    ZUDREHEN_BONUS: 30,          // Bonus for ending round
+    WIN_THRESHOLD_LOW: 500,      // Low target score option
+    WIN_THRESHOLD_HIGH: 1000     // High target score option
 };
 
 export const AI_DIFFICULTY = {
@@ -79,9 +80,31 @@ export const CARD_DIMENSIONS = {
     SPACING: 20
 };
 
+/**
+ * Get card point value for penalty/hand scoring at round end
+ * 2-9: 5 points, 10/J/Q/K: 10 points, Ace: 25 points, Joker: 50 points
+ */
 export function getCardPointValue(card) {
     if (card.isJoker) return 50;
-    if (['J', 'Q', 'K'].includes(card.rank)) return 10;
-    if (card.rank === 'A') return 10;
-    return parseInt(card.rank);
+    if (['10', 'J', 'Q', 'K'].includes(card.rank)) return 10;
+    if (card.rank === 'A') return 25;
+    const value = parseInt(card.rank);
+    if (value >= 2 && value <= 9) return 5;
+    return 5;
+}
+
+/**
+ * Get card meld value for first meld scoring
+ * 2-9: 5 points, 10/J/Q/K: 10 points
+ * Ace as 1 (low): 5 points, Ace after King (high): 10 points
+ * Three Aces (A-A-A): 25 points total
+ * Joker: value of the card it replaces
+ */
+export function getMeldPointValue(card, isHighAce = false) {
+    if (card.isJoker) return 0; // Joker value handled separately based on replaced card
+    if (['10', 'J', 'Q', 'K'].includes(card.rank)) return 10;
+    if (card.rank === 'A') return isHighAce ? 10 : 5;
+    const value = parseInt(card.rank);
+    if (value >= 2 && value <= 9) return 5;
+    return 5;
 }
