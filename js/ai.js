@@ -1,10 +1,11 @@
-import { AI_DIFFICULTY, SUITS, SUIT_ORDER } from './config.js';
+import { AI_DIFFICULTY, SUITS, SUIT_ORDER, CONFIG } from './config.js';
 import { GameRules } from './rules.js';
 
 export class AIPlayer {
     constructor(difficulty = 'medium') {
         this.setDifficulty(difficulty);
         this.hand = [];
+        this.hasMelded = false;
     }
 
     setDifficulty(difficulty) {
@@ -12,9 +13,11 @@ export class AIPlayer {
     }
 
     /**
-     * Decides whether to draw from deck or discard pile
+     * Decides whether to draw from deck or discard row
      */
-    shouldDrawFromDiscard(discardCard) {
+    shouldDrawFromDiscardRow(discardCard, hasMelded) {
+        // Cannot draw from discard row until first meld is laid
+        if (!hasMelded) return false;
         if (!discardCard) return false;
 
         // Add randomness based on difficulty
@@ -60,25 +63,69 @@ export class AIPlayer {
     }
 
     /**
-     * Decides whether to declare
+     * Tries to find melds that can be laid down
      */
-    shouldDeclare() {
-        // Only attempt to declare if difficulty allows
-        if (this.difficulty.strategyDepth < 2) {
-            // Easy AI rarely declares
-            if (Math.random() > 0.3) return false;
-        }
-
-        // Check if can legally declare
-        if (!GameRules.canDeclare(this.hand)) {
-            return false;
-        }
-
-        // Higher difficulty = more aggressive declaring
-        const handStrength = this.evaluateHandStrength();
-        const threshold = 100 - (this.difficulty.strategyDepth * 10);
+    findMeldsToLay(hasMelded) {
+        const melds = GameRules.findMelds(this.hand);
         
-        return handStrength >= threshold;
+        if (melds.length === 0) return [];
+        
+        // If hasn't melded yet, need to meet 30 point requirement
+        if (!hasMelded) {
+            // Try to find combination of melds that meet the requirement
+            for (let i = 1; i <= melds.length; i++) {
+                const combinations = this.getMeldCombinations(melds, i);
+                for (const combo of combinations) {
+                    const totalPoints = combo.reduce((sum, m) => sum + GameRules.calculateMeldPoints(m), 0);
+                    if (totalPoints >= CONFIG.FIRST_MELD_MIN_POINTS) {
+                        return combo;
+                    }
+                }
+            }
+            return []; // Can't meet requirement
+        }
+        
+        // If already melded, can lay any valid meld
+        return melds;
+    }
+
+    /**
+     * Helper: Get combinations of melds
+     */
+    getMeldCombinations(melds, size) {
+        if (size === 1) return melds.map(m => [m]);
+        if (size > melds.length) return [];
+        
+        const combinations = [];
+        for (let i = 0; i <= melds.length - size; i++) {
+            const head = melds[i];
+            const tailCombinations = this.getMeldCombinations(melds.slice(i + 1), size - 1);
+            for (const tail of tailCombinations) {
+                combinations.push([head, ...tail]);
+            }
+        }
+        return combinations;
+    }
+
+    /**
+     * Checks if AI can end the round (zudrehen)
+     */
+    canZudrehen(tableMelds) {
+        if (this.hand.length !== 1) return false;
+        
+        const lastCard = this.hand[0];
+        
+        // Jokers are always usable
+        if (lastCard.isJoker) return false;
+        
+        // Check if card can extend any meld
+        for (const meld of tableMelds) {
+            if (GameRules.canExtendMeld(meld, lastCard)) {
+                return false;
+            }
+        }
+        
+        return true;
     }
 
     /**
@@ -116,17 +163,17 @@ export class AIPlayer {
     /**
      * Main AI turn logic
      */
-    async takeTurn(deck, discardPile, onUpdate) {
+    async takeTurn(deck, discardRow, tableMelds, hasMelded, onUpdate) {
         // Simulate thinking time
         await this.wait(this.difficulty.thinkTime);
 
         let drewCard;
-        const topDiscard = discardPile[discardPile.length - 1];
+        const topDiscard = discardRow[discardRow.length - 1];
 
         // Decide draw source
-        if (this.shouldDrawFromDiscard(topDiscard)) {
-            drewCard = discardPile.pop();
-            if (onUpdate) onUpdate('AI drew from discard pile');
+        if (this.shouldDrawFromDiscardRow(topDiscard, hasMelded)) {
+            drewCard = discardRow.pop();
+            if (onUpdate) onUpdate('AI drew from discard row');
         } else {
             drewCard = deck.draw();
             if (onUpdate) onUpdate('AI drew from deck');
@@ -137,10 +184,37 @@ export class AIPlayer {
         // Wait a bit
         await this.wait(500);
 
-        // Check if should declare
-        if (this.shouldDeclare()) {
-            if (onUpdate) onUpdate('AI is declaring!');
-            return { action: 'declare', card: null };
+        // Try to lay melds
+        const meldsToLay = this.findMeldsToLay(hasMelded);
+        const laidMelds = [];
+        
+        if (meldsToLay.length > 0 && (hasMelded || this.difficulty.strategyDepth >= 2)) {
+            for (const meld of meldsToLay) {
+                // Remove cards from hand
+                for (const card of meld.cards) {
+                    const index = this.hand.findIndex(c => c.id === card.id);
+                    if (index !== -1) {
+                        this.hand.splice(index, 1);
+                    }
+                }
+                laidMelds.push(meld);
+            }
+            
+            if (laidMelds.length > 0) {
+                this.hasMelded = true;
+                if (onUpdate) onUpdate(`AI laid ${laidMelds.length} meld(s)`);
+            }
+        }
+
+        await this.wait(300);
+
+        // Check if can zudrehen
+        const allTableMelds = [...tableMelds, ...laidMelds];
+        if (this.canZudrehen(allTableMelds)) {
+            if (this.difficulty.strategyDepth >= 2) {
+                if (onUpdate) onUpdate('AI is ending the round!');
+                return { action: 'zudrehen', card: null, meldsLaid: laidMelds };
+            }
         }
 
         // Choose card to discard
@@ -152,7 +226,7 @@ export class AIPlayer {
 
         if (onUpdate) onUpdate('AI discarded a card');
 
-        return { action: 'discard', card: discardCard };
+        return { action: 'discard', card: discardCard, meldsLaid: laidMelds };
     }
 
     /**

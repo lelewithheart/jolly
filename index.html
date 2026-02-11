@@ -32,14 +32,15 @@
             <div id="game-controls">
                 <button id="draw-deck-btn" class="control-btn">
                     <span>Draw from Deck</span>
-                    <span id="deck-count" class="count">52</span>
+                    <span id="deck-count" class="count">60</span>
                 </button>
                 <button id="draw-discard-btn" class="control-btn">
-                    <span>Draw from Discard</span>
+                    <span>Draw from Row</span>
                     <span id="discard-count" class="count">0</span>
                 </button>
+                <button id="meld-btn" class="control-btn">Lay Meld</button>
                 <button id="sort-hand-btn" class="control-btn">Sort Hand</button>
-                <button id="declare-btn" class="control-btn primary" disabled>Declare</button>
+                <button id="declare-btn" class="control-btn primary" disabled>End Round</button>
             </div>
 
             <div id="player-hand" class="hand-area"></div>
@@ -56,17 +57,26 @@
                         <option value="hard">Hard</option>
                     </select>
                 </div>
+                <div class="setting">
+                    <label for="target-score">Target Score:</label>
+                    <select id="target-score">
+                        <option value="500" selected>500 Points</option>
+                        <option value="1000">1000 Points</option>
+                    </select>
+                </div>
                 <button id="new-game-btn" class="control-btn">New Game</button>
             </div>
 
             <div class="sidebar-section">
                 <h3>How to Play</h3>
                 <div class="rules">
-                    <p><strong>Objective:</strong> Form valid sets and sequences with your cards.</p>
-                    <p><strong>Set:</strong> 3-4 cards of same rank (e.g., 7♠ 7♥ 7♦)</p>
+                    <p><strong>Objective:</strong> Be the first to lay down all your cards and end the round.</p>
+                    <p><strong>Set:</strong> 3+ cards of same rank (e.g., 7♠ 7♥ 7♦)</p>
                     <p><strong>Sequence:</strong> 3+ consecutive cards of same suit (e.g., 5♠ 6♠ 7♠)</p>
+                    <p><strong>First Meld:</strong> Requires at least 30 points to lay down.</p>
                     <p><strong>Jolly:</strong> Joker cards are wild and can substitute any card.</p>
-                    <p><strong>To Win:</strong> Form at least 2 sequences (1 pure) and declare.</p>
+                    <p><strong>Discard Row:</strong> Can only draw from row after first meld.</p>
+                    <p><strong>End Round:</strong> Have exactly 1 unusable card left and click "End Round".</p>
                 </div>
             </div>
 

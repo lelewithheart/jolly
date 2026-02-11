@@ -1,5 +1,11 @@
 import { ANIMATION_DURATION, CARD_DIMENSIONS } from './config.js';
 
+// Renderer constants
+const MELD_WRAP_MARGIN = 100;
+const MELD_ROW_HEIGHT = 80;
+const MELD_CARD_SPACING = 18;
+const MELD_GAP = 30;
+
 export class Renderer {
     constructor(canvas) {
         this.canvas = canvas;
@@ -120,6 +126,7 @@ export class Renderer {
     }
 
     drawDiscardPile(cards, x, y) {
+        // Now this is a "discard row" - display as a horizontal row
         if (cards.length === 0) {
             // Draw empty placeholder
             this.ctx.save();
@@ -132,11 +139,33 @@ export class Renderer {
             return;
         }
 
-        // Draw a few cards stacked
-        const topCards = cards.slice(-3);
-        topCards.forEach((card, index) => {
-            this.drawCard(x + index * 2, y + index * 2, card, true, 1);
+        // Draw cards in a row (showing last few cards)
+        const maxVisible = 5;
+        const visibleCards = cards.slice(-maxVisible);
+        const spacing = 25; // Overlap spacing
+        
+        visibleCards.forEach((card, index) => {
+            this.drawCard(x + index * spacing, y, card, true, 1);
         });
+    }
+
+    drawTableMelds(melds, x, y) {
+        if (!melds || melds.length === 0) return;
+
+        let currentX = x;
+        
+        for (const meld of melds) {
+            meld.cards.forEach((card, index) => {
+                this.drawCard(currentX + index * MELD_CARD_SPACING, y, card, true, 0.7);
+            });
+            currentX += meld.cards.length * MELD_CARD_SPACING + MELD_GAP;
+            
+            // Wrap to next row if needed
+            if (currentX > this.width - MELD_WRAP_MARGIN) {
+                currentX = x;
+                y += MELD_ROW_HEIGHT;
+            }
+        }
     }
 
     drawDeck(cardCount, x, y) {
@@ -194,20 +223,30 @@ export class Renderer {
             shadow: true
         });
 
+        // Draw table melds (in the middle area)
+        if (gameState.tableMelds && gameState.tableMelds.length > 0) {
+            this.drawText('Table Melds', this.width / 2, this.height / 2 - 90, {
+                font: 'bold 14px Arial',
+                shadow: true
+            });
+            this.drawTableMelds(gameState.tableMelds, 30, this.height / 2 - 70);
+        }
+
         // Draw deck
         const deckX = this.width / 2 - 150;
-        const deckY = this.height / 2 - 50;
+        const deckY = this.height / 2 + 20;
         this.drawDeck(gameState.deckCount, deckX, deckY);
         this.drawText('Deck', deckX + 35, deckY + 120, {
             font: '14px Arial',
             shadow: true
         });
 
-        // Draw discard pile
-        const discardX = this.width / 2 + 80;
-        const discardY = this.height / 2 - 50;
-        this.drawDiscardPile(gameState.discardPile, discardX, discardY);
-        this.drawText('Discard', discardX + 35, discardY + 120, {
+        // Draw discard row
+        const discardX = this.width / 2 + 20;
+        const discardY = this.height / 2 + 20;
+        const discardRowCards = gameState.discardRow || gameState.discardPile || [];
+        this.drawDiscardPile(discardRowCards, discardX, discardY);
+        this.drawText('Discard Row', discardX + 60, discardY + 120, {
             font: '14px Arial',
             shadow: true
         });
