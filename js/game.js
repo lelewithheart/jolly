@@ -338,7 +338,7 @@ export class Game {
     }
 
     updateCounts() {
-        this.deckCountEl.textContent = this.deck.count;
+        this.deckCountEl.textContent = this.deck ? this.deck.count : 0;
         this.discardCountEl.textContent = this.discardPile.length;
     }
 
@@ -374,6 +374,8 @@ export class Game {
     }
 
     render() {
+        if (!this.deck) return; // Don't render if game hasn't started
+        
         const gameState = {
             aiHand: this.aiPlayer.hand,
             deckCount: this.deck.count,
